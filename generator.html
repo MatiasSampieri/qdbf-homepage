@@ -1,0 +1,507 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
+  <script src="https://kit.fontawesome.com/764de9976b.js" crossorigin="anonymous"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/js-yaml/4.1.0/js-yaml.min.js" integrity="sha512-CSBhVREyzHAjAFfBlIBakjoRUKp5h7VSweP0InR/pAJyptH7peuhCsqAI/snV+TwZmXZqoUklpXp6R6wMnYf5Q==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>QDBF Helper</title>
+</head>
+
+<body>
+  <div class="p-2 m-2">
+    <h1 class="text-4xl font-extrabold text-zinc-800">Quick Distributed Brute Force</h1>
+  </div>
+  <hr class="mx-4 border-gray-300 mb-3" />
+  <div class="m-2 rounded-md p-2 flex space-x-4">
+    <h2 class="text-3xl font-bold text-zinc-700">Configuración</h2>
+    <button onclick="makeConfig()" class="bg-emerald-700 ml-auto p-1 px-3 mt-1 text-white rounded-lg hover:bg-emerald-600 active:bg-emerald-800">
+      Generar config.yml <i class="fa text-gray-100 mt-1 ml-2 fa-download" aria-hidden="true"></i>
+    </button>
+  </div>
+
+  <div class="flex-block space-y-4 m-3">
+    <div class="main bg-slate-200 rounded-lg p-2 px-3 shadow-md" x-data="request">
+      <h3 class="text-2xl font-bold text-zinc-700">Petición</h3>
+      <div class="flex-block space-y-2 p-2 bg-gray-100 rounded-lg shadow-md grow mt-2">
+        <div class="flex space-x-2">
+          <select x-model="selectedMethod" id="method" class="p-2 rounded-lg bg-white font-semibold transition-colors"
+            :class="methods.find(m => m.method === selectedMethod)?.color || ''">
+            <template x-for="method in methods" :key="method.method">
+              <option class="font-semibold" :class="method.color" :value="method.method" x-text="method.method">
+              </option>
+            </template>
+          </select>
+          <input x-model="url" type="text" placeholder="Ruta de petición..."
+            class="p-2 rounded-lg bg-white flex-1 text-gray-700 text-monospace font-semibold" />
+        </div>
+
+        <div class="flex space-x-2">
+          <div class="grow">
+            <div class="flex-block space-x-2 p-2 bg-white rounded-lg"
+              x-data="{ open: false, newHeaderKey: '', newHeaderVal: '' }">
+              <div class="flex space-x-2 m-auto pr-3" x-on:click="open = !open">
+                <h4 class="font-medium text-gray-700 grow">Cabecera</h4>
+                <i class="fa text-gray-700 mt-1" :class="open? 'fa-chevron-down' : 'fa-chevron-right'"
+                  aria-hidden="true"></i>
+              </div>
+              <div class="grow overflow-auto transition-all duration-200" :class="open? 'max-h-500px' : 'max-h-0'">
+                <ul class="flex-block space-y-2 mt-2">
+                  <template x-for="item in header">
+                    <li>
+                      <div class="flex flex-wrap gap-2 max-w-full m-auto rounded-sm bg-gray-50">
+                        <input x-model="item.key" type="text" placeholder="clave" class="grow sm:w-1/4 min-w-0 p-1">
+                        <input x-model="item.value" type="text" placeholder="valor" class="grow sm:w-1/4 min-w-0 p-1">
+                        <button x-on:click="const i = header.findIndex(h => h === item); header.splice(i, 1)"
+                          class="p-1 text-gray-600 active:text-white active:bg-red-600 rounded-sm">
+                          <i class="fa fa-x mx-2 mt-1" aria-hidden="true"></i>
+                        </button>
+                      </div>
+                    </li>
+                  </template>
+                  <li>
+                    <div
+                      class="flex flex-wrap gap-2 max-w-full m-auto rounded-sm bg-gray-100 p-1 border border-gray-200">
+                      <input x-model="newHeaderKey" type="text" placeholder="clave" class="grow sm:w-1/4 min-w-0 p-1">
+                      <input x-model="newHeaderVal" type="text" placeholder="valor" class="grow sm:w-1/4 min-w-0 p-1">
+                      <button x-on:click="header.push({key: newHeaderKey, value: newHeaderVal})"
+                        class="p-1 bg-white text-emerald-700 active:text-white active:bg-emerald-600 rounded-sm">
+                        <i class="fa fa-add m-2" aria-hidden="true"></i>
+                      </button>
+                    </div>
+                  </li>
+                </ul>
+              </div>
+            </div>
+          </div>
+
+          <div class="grow">
+            <div class="flex-block space-x-2 p-2 bg-white rounded-lg"
+              x-data="{ open: false, newKey: '', newVal: '' }">
+              <div class="flex space-x-2 m-auto pr-3" x-on:click="open = !open">
+                <h4 class="font-medium text-gray-700 grow">Parametros</h4>
+                <i class="fa text-gray-700 mt-1" :class="open? 'fa-chevron-down' : 'fa-chevron-right'"
+                  aria-hidden="true"></i>
+              </div>
+              <div class="grow overflow-auto transition-all duration-200" :class="open? 'max-h-500px' : 'max-h-0'">
+                <ul class="flex-block space-y-2 mt-2">
+                  <template x-for="item in params">
+                    <li>
+                      <div class="flex flex-wrap gap-2 max-w-full m-auto rounded-sm bg-gray-50">
+                        <input x-model="item.key" type="text" placeholder="clave" class="grow sm:w-1/4 min-w-0 p-1">
+                        <input x-model="item.value" type="text" placeholder="valor" class="grow sm:w-1/4 min-w-0 p-1">
+                        <button x-on:click="const i = params.findIndex(h => h === item); params.splice(i, 1)"
+                          class="p-1 text-gray-600 active:text-white active:bg-red-600 rounded-sm">
+                          <i class="fa fa-x mx-2 mt-1" aria-hidden="true"></i>
+                        </button>
+                      </div>
+                    </li>
+                  </template>
+                  <li>
+                    <div
+                      class="flex flex-wrap gap-2 max-w-full m-auto rounded-sm bg-gray-100 p-1 border border-gray-200">
+                      <input x-model="newKey" type="text" placeholder="clave" class="grow sm:w-1/4 min-w-0 p-1">
+                      <input x-model="newVal" type="text" placeholder="valor" class="grow sm:w-1/4 min-w-0 p-1">
+                      <button x-on:click="params.push({key: newKey, value: newVal})"
+                        class="p-1 bg-white text-emerald-700 active:text-white active:bg-emerald-600 rounded-sm">
+                        <i class="fa fa-add m-2" aria-hidden="true"></i>
+                      </button>
+                    </div>
+                  </li>
+                </ul>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="flex-block space-x-2 p-2 bg-white rounded-lg">
+          <div class="flex space-x-2 m-auto pr-3">
+            <h4 class="font-medium text-gray-700 grow">Body</h4>
+          </div>
+          <div class="grow overflow-auto transition-all duration-200">
+            <textarea x-model="body"
+              class="block mt-2 p-2.5 w-full text-sm text-gray-900 bg-gray-50 rounded-lg border border-gray-100 focus:ring-blue-500 focus:border-blue-500"
+              placeholder="Contendio de la peticion..."></textarea>
+          </div>
+        </div>
+
+
+
+      </div>
+    </div>
+
+    <div class="main bg-slate-200 rounded-lg p-2 px-3 shadow-md" x-data="params">
+      <h3 class="text-2xl font-bold text-zinc-700">Variables</h3>
+      <div class="flex-block space-y-2 p-2 bg-gray-100 rounded-lg shadow-md grow mt-2">
+        <div class="flex space-x-2">
+          <select x-model="selectedType" id="type" class="p-2 rounded-lg bg-white font-semibold transition-colors">
+            <template x-for="type in types" :key="type">
+              <option class="font-semibold" :value="type" x-text="type">
+              </option>
+            </template>
+          </select>
+          <input x-model="name" type="text" placeholder="Nombre variable..."
+            class="p-2 rounded-lg bg-white flex-1 text-gray-700 text-monospace font-semibold" />
+        </div>
+        <div class="flex-block space-y-2" :class="selectedType === 'RANGE' ? '' : 'hidden'">
+          <div class="flex space-x-2">
+            <input x-model="from" type="number" step="1" placeholder="Desde..."
+            class="p-2 rounded-lg bg-white margin-auto flex-1 text-gray-700 text-monospace font-semibold" />
+          </div>
+          <div class="flex space-x-2">
+            <input x-model="to" type="number" step="1" placeholder="Hasta..."
+            class="p-2 rounded-lg bg-white margin-auto flex-1 text-gray-700 text-monospace font-semibold" />
+          </div>
+        </div>
+
+        <div class="flex-block space-y-2" :class="selectedType === 'FILE' ? '' : 'hidden'">
+          <div class="flex space-x-2">
+            <input x-model="file" type="text" placeholder="Path archivo..."
+            class="p-2 rounded-lg bg-white margin-auto flex-1 text-gray-700 text-monospace font-semibold" />
+          </div>
+        </div>
+
+        <div class="flex-block space-y-2" :class="selectedType === 'DICT' ? '' : 'hidden'">
+          <div class="flex space-x-2">
+            <input x-model="dict" type="text" placeholder="Dict formato ['a', 'b', ...]"
+            class="p-2 rounded-lg bg-white margin-auto flex-1 text-gray-700 text-monospace font-semibold" />
+          </div>
+        </div>
+        
+      </div>
+    </div>
+
+    <div class="main bg-slate-200 rounded-lg p-2 px-3 shadow-md" x-data="criteria">
+      <h3 class="text-2xl font-bold text-zinc-700">Concidión</h3>
+      <div class="flex-block space-y-2 p-2 bg-gray-100 rounded-lg shadow-md grow mt-2">
+        <div class="flex space-x-2">
+          <select x-model="selectedType" id="type" class="p-2 rounded-lg flex-1 bg-white font-semibold transition-colors">
+            <template x-for="type in ['STOP', 'LOG']" :key="type">
+              <option class="font-semibold" :value="type" x-text="type">
+              </option>
+            </template>
+          </select>
+        </div>
+        
+        <div class="flex space-x-2">
+          <label for="statusCode" class="my-auto text-gray-600">Codigo status:</label>
+          <input x-model="status" type="number" min="100" max="599" step="1" id="statusCode"
+            placeholder="Status"
+            class="p-2 py-1 rounded-lg bg-gray-50 text-gray-700 font-semibold [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none" />
+          <p class="my-auto text-gray-400" x-text="responseCodes[status]"></p>
+        </div>
+
+        <div class="flex space-x-2">
+          <div class="grow">
+            <div class="flex-block space-x-2 p-2 bg-white rounded-lg"
+              x-data="{ open: false, newHeaderKey_: '', newHeaderVal_: '' }">
+              <div class="flex space-x-2 m-auto pr-3" x-on:click="open = !open">
+                <h4 class="font-medium text-gray-700 grow">Cabecera</h4>
+                <i class="fa text-gray-700 mt-1" :class="open? 'fa-chevron-down' : 'fa-chevron-right'"
+                  aria-hidden="true"></i>
+              </div>
+              <div class="grow overflow-auto transition-all duration-200" :class="open? 'max-h-500px' : 'max-h-0'">
+                <ul class="flex-block space-y-2 mt-2">
+                  <template x-for="item in header">
+                    <li>
+                      <div class="flex flex-wrap gap-2 max-w-full m-auto rounded-sm bg-gray-50">
+                        <input x-model="item.key" type="text" placeholder="clave" class="grow sm:w-1/4 min-w-0 p-1">
+                        <input x-model="item.value" type="text" placeholder="valor" class="grow sm:w-1/4 min-w-0 p-1">
+                        <button x-on:click="const i = header.findIndex(h => h === item); header.splice(i, 1)"
+                          class="p-1 text-gray-600 active:text-white active:bg-red-600 rounded-sm">
+                          <i class="fa fa-x mx-2 mt-1" aria-hidden="true"></i>
+                        </button>
+                      </div>
+                    </li>
+                  </template>
+                  <li>
+                    <div
+                      class="flex flex-wrap gap-2 max-w-full m-auto rounded-sm bg-gray-100 p-1 border border-gray-200">
+                      <input x-model="newHeaderKey_" type="text" placeholder="clave" class="grow sm:w-1/4 min-w-0 p-1">
+                      <input x-model="newHeaderVal_" type="text" placeholder="valor" class="grow sm:w-1/4 min-w-0 p-1">
+                      <button x-on:click="header.push({key: newHeaderKey_, value: newHeaderVal_})"
+                        class="p-1 bg-white text-emerald-700 active:text-white active:bg-emerald-600 rounded-sm">
+                        <i class="fa fa-add m-2" aria-hidden="true"></i>
+                      </button>
+                    </div>
+                  </li>
+                </ul>
+              </div>
+            </div>
+          </div>
+
+          <div class="grow">
+            <div class="flex-block space-x-2 p-2 bg-white rounded-lg"
+              x-data="{ open: false, newKey_: '', newVal_: '' }">
+              <div class="flex space-x-2 m-auto pr-3" x-on:click="open = !open">
+                <h4 class="font-medium text-gray-700 grow">Parametros</h4>
+                <i class="fa text-gray-700 mt-1" :class="open? 'fa-chevron-down' : 'fa-chevron-right'"
+                  aria-hidden="true"></i>
+              </div>
+              <div class="grow overflow-auto transition-all duration-200" :class="open? 'max-h-500px' : 'max-h-0'">
+                <ul class="flex-block space-y-2 mt-2">
+                  <template x-for="item in params">
+                    <li>
+                      <div class="flex flex-wrap gap-2 max-w-full m-auto rounded-sm bg-gray-50">
+                        <input x-model="item.key" type="text" placeholder="clave" class="grow sm:w-1/4 min-w-0 p-1">
+                        <input x-model="item.value" type="text" placeholder="valor" class="grow sm:w-1/4 min-w-0 p-1">
+                        <button x-on:click="const i = params.findIndex(h => h === item); params.splice(i, 1)"
+                          class="p-1 text-gray-600 active:text-white active:bg-red-600 rounded-sm">
+                          <i class="fa fa-x mx-2 mt-1" aria-hidden="true"></i>
+                        </button>
+                      </div>
+                    </li>
+                  </template>
+                  <li>
+                    <div
+                      class="flex flex-wrap gap-2 max-w-full m-auto rounded-sm bg-gray-100 p-1 border border-gray-200">
+                      <input x-model="newKey_" type="text" placeholder="clave" class="grow sm:w-1/4 min-w-0 p-1">
+                      <input x-model="newVal_" type="text" placeholder="valor" class="grow sm:w-1/4 min-w-0 p-1">
+                      <button x-on:click="params.push({key: newKey_, value: newVal_})"
+                        class="p-1 bg-white text-emerald-700 active:text-white active:bg-emerald-600 rounded-sm">
+                        <i class="fa fa-add m-2" aria-hidden="true"></i>
+                      </button>
+                    </div>
+                  </li>
+                </ul>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="flex-block space-x-2 p-2 bg-white rounded-lg">
+          <div class="flex space-x-2 m-auto pr-3">
+            <h4 class="font-medium text-gray-700 grow">Body</h4>
+          </div>
+          <div class="grow overflow-auto transition-all duration-200">
+            <textarea x-model="body"
+              class="block mt-2 p-2.5 w-full text-sm text-gray-900 bg-gray-50 rounded-lg border border-gray-100 focus:ring-blue-500 focus:border-blue-500"
+              placeholder="Regex que debe cumplir el body..."></textarea>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="main bg-slate-200 rounded-lg p-2 px-3 shadow-md" x-data="helpers">
+      <h3 class="text-2xl font-bold text-zinc-700">Helpers</h3>
+      <div class="flex-block space-y-2 p-2 bg-gray-100 rounded-lg shadow-md grow mt-2">
+        <ul class="flex-block space-y-2 mt-2">
+          <template x-for="item in helpers">
+            <li>
+              <div class="flex flex-wrap gap-2 max-w-full m-auto rounded-sm bg-gray-50">
+                <input x-model="item" type="text" placeholder="Direccion IP..." class="grow sm:w-1/4 min-w-0 p-1">
+                <button x-on:click="const i = helpers.findIndex(h => h === item); helpers.splice(i, 1)"
+                  class="p-1 text-gray-600 active:text-white active:bg-red-600 rounded-sm">
+                  <i class="fa fa-x mx-2 mt-1" aria-hidden="true"></i>
+                </button>
+              </div>
+            </li>
+          </template>
+          <li>
+            <div
+              class="flex flex-wrap gap-2 max-w-full m-auto rounded-sm bg-gray-100 p-1 border border-gray-200">
+              <input x-model="newHelp" type="text" placeholder="Direcion IP..." class="grow sm:w-1/4 min-w-0 p-1">
+              <button x-on:click="helpers.push(newHelp)"
+                class="p-1 bg-white text-emerald-700 active:text-white active:bg-emerald-600 rounded-sm">
+                <i class="fa fa-add m-2" aria-hidden="true"></i>
+              </button>
+            </div>
+          </li>
+        </ul>
+      </div>
+    </div>
+  </div>
+</body>
+
+<script>
+  const responseCodes = {
+    '200': 'OK',
+    '201': 'Created',
+    '202': 'Accepted',
+    '203': 'Non-Authoritative Information',
+    '204': 'No Content',
+    '205': 'Reset Content',
+    '206': 'Partial Content',
+    '207': 'Multi-Status (WebDAV)',
+    '208': 'Already Reported (WebDAV)',
+    '226': 'IM Used',
+    '300': 'Multiple Choices',
+    '301': 'Moved Permanently',
+    '302': 'Found',
+    '303': 'See Other',
+    '304': 'Not Modified',
+    '305': 'Use Proxy',
+    '306': '(Unused)',
+    '307': 'Temporary Redirect',
+    '308': 'Permanent Redirect (experimental)',
+    '400': 'Bad Request',
+    '401': 'Unauthorized',
+    '402': 'Payment Required',
+    '403': 'Forbidden',
+    '404': 'Not Found',
+    '405': 'Method Not Allowed',
+    '406': 'Not Acceptable',
+    '407': 'Proxy Authentication Required',
+    '408': 'Request Timeout',
+    '409': 'Conflict',
+    '410': 'Gone',
+    '411': 'Length Required',
+    '412': 'Precondition Failed',
+    '413': 'Request Entity Too Large',
+    '414': 'Request-URI Too Long',
+    '415': 'Unsupported Media Type',
+    '416': 'Requested Range Not Satisfiable',
+    '417': 'Expectation Failed',
+    '418': 'I\'m a teapot (RFC 2324)',
+    '420': 'Enhance Your Calm (Twitter)',
+    '422': 'Unprocessable Entity (WebDAV)',
+    '423': 'Locked (WebDAV)',
+    '424': 'Failed Dependency (WebDAV)',
+    '425': 'Reserved for WebDAV',
+    '426': 'Upgrade Required',
+    '428': 'Precondition Required',
+    '429': 'Too Many Requests',
+    '431': 'Request Header Fields Too Large',
+    '444': 'No Response (Nginx)',
+    '449': 'Retry With (Microsoft)',
+    '450': 'Blocked by Windows Parental Controls (Microsoft)',
+    '451': 'Unavailable For Legal Reasons',
+    '499': 'Client Closed Request (Nginx)',
+    '500': 'Internal Server Error',
+    '501': 'Not Implemented',
+    '502': 'Bad Gateway',
+    '503': 'Service Unavailable',
+    '504': 'Gateway Timeout',
+    '505': 'HTTP Version Not Supported',
+    '506': 'Variant Also Negotiates (Experimental)',
+    '507': 'Insufficient Storage (WebDAV)',
+    '508': 'Loop Detected (WebDAV)',
+    '509': 'Bandwidth Limit Exceeded (Apache)',
+    '510': 'Not Extended',
+    '511': 'Network Authentication Required',
+    '598': 'Network read timeout error',
+    '599': 'Network connect timeout error'
+  }
+
+  const methods = [
+    { method: 'GET', color: 'text-green-600' },
+    { method: 'POST', color: 'text-yellow-500' },
+    { method: 'PUT', color: 'text-blue-600' },
+    { method: 'PATCH', color: 'text-purple-600' },
+    { method: 'DELETE', color: 'text-red-500' },
+    { method: 'HEAD', color: 'text-emerald-600' },
+    { method: 'OPTIONS', color: 'text-pink-600' }
+  ]
+
+  const types = [
+    'RANGE',
+    'DICT',
+    'FILE'
+  ]
+
+  const params = {
+    types,
+
+    name: '',
+    selectedType: 'RANGE',
+    dict: '',
+    file: '',
+    from: 1,
+    to: 10,
+  }
+  
+  const criteria = {
+    responseCodes,
+    selectedType: 'STOP',
+    status: 200,
+    header: [],
+    params: [],
+    body: ''
+  }
+
+  const request = {
+    methods,
+
+    header: [],
+    params: [],
+
+    selectedMethod: 'GET',
+    url: '',
+    body: ''
+  }
+
+  const helpers = {
+    newHelp: '',
+    helpers: []
+  }
+
+  document.addEventListener("alpine:init", () => {
+    Alpine.data("request", () => (request));
+    Alpine.data("params", () => (params));
+    Alpine.data("criteria", () => (criteria));
+    Alpine.data("helpers", () => (helpers));
+  });
+
+  function makeKeyValObj(map) {
+    const obj = {}
+    for (item of map) {
+      obj[item.key] = item.value
+    }
+
+    return obj
+  }
+
+  function makeConfig() {
+    const fmtRequest = {
+      url: request.url,
+      method: request.selectedMethod,
+      body: request.body,
+      header: makeKeyValObj(request.header),
+      params: makeKeyValObj(request.params)
+    }
+    
+    const fmtParams = {}
+    fmtParams[params.name] = {
+      type: params.selectedType,
+      to: params.to,
+      from: params.from,
+      dict: params.dict,
+      file: params.file
+    }
+
+    const fmtCriteria = {
+      type: criteria.selectedType,
+      response: {
+        status: criteria.status,
+        header: makeKeyValObj(criteria.header),
+        params: makeKeyValObj(criteria.params),
+        body: criteria.body
+      }
+    }
+
+    const conf = {
+      request: fmtRequest,
+      params: fmtParams,
+      criteria: fmtCriteria,
+      helpers: helpers.helpers
+    }
+
+    const configYML = jsyaml.dump(conf, {
+      replacer: (key, value) => (value === null || value === "" || value == {} ? undefined : value)
+    })
+
+    const elem = document.createElement('a')
+    elem.setAttribute('href', "data:text/yaml;charset=UTF-8,"+encodeURIComponent(configYML))
+    elem.setAttribute('download', 'config.yml')
+    elem.style.display = 'none'
+    document.body.appendChild(elem)
+    elem.click()
+    document.body.removeChild(elem)
+  }
+</script>
+
+</html>
